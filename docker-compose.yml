@@ -1,0 +1,122 @@
+# AData-Go
+# Go语言量化数据获取SDK
+
+version: '3.8'
+
+services:
+  # AData-Go 基础服务
+  adata-go:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: adata-go
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+      # - ADATA_PROXY_URL=http://proxy:8080  # 如果需要代理
+    networks:
+      - adata-network
+    # volumes:
+    #   - ./data:/app/data  # 如果需要持久化数据
+    
+  # Redis缓存服务（可选）
+  redis:
+    image: redis:7-alpine
+    container_name: adata-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - adata-network
+    
+  # MongoDB数据库（可选）
+  mongodb:
+    image: mongo:6
+    container_name: adata-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: adata
+    volumes:
+      - mongodb_data:/data/db
+      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    ports:
+      - "27017:27017"
+    networks:
+      - adata-network
+      
+  # PostgreSQL数据库（可选）
+  postgres:
+    image: postgres:15-alpine
+    container_name: adata-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: adata
+      POSTGRES_USER: adata
+      POSTGRES_PASSWORD: password123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - adata-network
+      
+  # Prometheus监控（可选）
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: adata-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - adata-network
+      
+  # Grafana可视化（可选）
+  grafana:
+    image: grafana/grafana:latest
+    container_name: adata-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - adata-network
+    depends_on:
+      - prometheus
+
+networks:
+  adata-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+    driver: local
+  mongodb_data:
+    driver: local
+  postgres_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
