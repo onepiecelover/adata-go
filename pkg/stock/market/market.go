@@ -126,7 +126,7 @@ func (s *StockMarket) getMarketFromEast(params *types.MarketParams) ([]types.Mar
 // parseEastKlineData 解析东方财富K线数据
 func (s *StockMarket) parseEastKlineData(kline, stockCode string) (*types.MarketData, error) {
 	parts := strings.Split(kline, ",")
-	if len(parts) < 12 {
+	if len(parts) < 11 {
 		return nil, fmt.Errorf("invalid kline data format")
 	}
 
@@ -141,7 +141,7 @@ func (s *StockMarket) parseEastKlineData(kline, stockCode string) (*types.Market
 		Change:    utils.ParseFloat(parts[7]),
 		ChangePct: utils.ParseFloat(parts[8]),
 		Turnover:  utils.ParseFloat(parts[9]),
-		PreClose:  utils.ParseFloat(parts[11]),
+		PreClose:  utils.ParseFloat(parts[10]), // 修正为正确的字段索引
 		StockCode: stockCode,
 	}, nil
 }
@@ -203,7 +203,7 @@ func (s *StockMarket) parseBaiduMarketData(marketData, stockCode string) ([]type
 		}
 
 		parts := strings.Split(line, ",")
-		if len(parts) < 12 {
+		if len(parts) < 11 {
 			continue
 		}
 
@@ -226,7 +226,7 @@ func (s *StockMarket) parseBaiduMarketData(marketData, stockCode string) ([]type
 			Change:    utils.ParseFloat(parts[7]),
 			ChangePct: utils.ParseFloat(parts[8]),
 			Turnover:  utils.ParseFloat(parts[9]),
-			PreClose:  utils.ParseFloat(parts[11]),
+			PreClose:  utils.ParseFloat(parts[10]),
 			StockCode: stockCode,
 		}
 
